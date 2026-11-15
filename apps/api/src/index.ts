@@ -2,7 +2,7 @@ import { verifyToken } from '@clerk/backend';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 
-import { createApp } from './app.js';
+import { createApp } from './create-app.js';
 import { schema } from './db/schema.js';
 
 const databaseUrl = process.env.DATABASE_URL;
