@@ -1,0 +1,9 @@
+{
+  "name": "moly",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "mobile": "pnpm --filter mobile start",
+    "typecheck": "pnpm --filter mobile exec tsc --noEmit"
+  }
+}
