@@ -36,6 +36,18 @@
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "owner": "hermannrichys-team",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a8d48759-42e1-4d55-bf3c-139c774b4a34"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a8d48759-42e1-4d55-bf3c-139c774b4a34"
+      }
     }
   }
 }
