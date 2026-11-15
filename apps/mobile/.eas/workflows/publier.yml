@@ -3,6 +3,9 @@ name: Publier une mise à jour
 on:
   push:
     branches: ['main']
+    paths:
+      - apps/mobile/**
+      - pnpm-lock.yaml
 
 jobs:
   publier:
