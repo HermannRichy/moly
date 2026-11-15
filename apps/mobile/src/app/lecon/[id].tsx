@@ -6,7 +6,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Body, Button, Card, CircleButton, Display, Grain, Heading, Label, Medal, Pill, Wave } from '@/components/ui';
-import { type Exercise, getLesson, type Lesson } from '@/data/lessons';
+import type { Exercise, Lesson } from '@/data/lessons';
 import { isCorrect } from '@/lib/grading';
 import { useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -22,9 +22,9 @@ const KIND: Record<Exercise['type'], { label: string; lead: string; main: string
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTheme();
-  const { data, completeLesson } = useApp();
+  const { data, lessons, completeLesson } = useApp();
   const insets = useSafeAreaInsets();
-  const lesson = getLesson(id);
+  const lesson = lessons.find((item) => item.id === id);
 
   const [step, setStep] = useState(0);
   const [answer, setAnswer] = useState('');

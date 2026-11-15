@@ -1,9 +1,12 @@
+import { ClerkProvider } from '@clerk/expo';
+import { tokenCache } from '@clerk/expo/token-cache';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { CLERK_PUBLISHABLE_KEY } from '@/config';
 import { AppStateProvider, useApp } from '@/store/AppState';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -21,11 +24,13 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <ThemeProvider>
-      <AppStateProvider>
-        <Shell />
-      </AppStateProvider>
-    </ThemeProvider>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      <ThemeProvider>
+        <AppStateProvider>
+          <Shell />
+        </AppStateProvider>
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }
 

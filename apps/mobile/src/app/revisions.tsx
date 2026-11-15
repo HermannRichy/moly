@@ -5,14 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/components/TabBar';
 import { Body, Card, Heading, Label, Medal, Pill } from '@/components/ui';
-import { type Lesson, lessons } from '@/data/lessons';
+import type { Lesson } from '@/data/lessons';
 import { useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BLUE } from '@/theme/tokens';
 
 export default function Revisions() {
   const { t } = useTheme();
-  const { data } = useApp();
+  const { data, lessons } = useApp();
   const insets = useSafeAreaInsets();
 
   const toReview = lessons.filter((lesson) => data.toReview.includes(lesson.id));

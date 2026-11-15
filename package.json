@@ -4,6 +4,7 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "mobile": "pnpm --filter mobile start",
-    "typecheck": "pnpm --filter mobile exec tsc --noEmit"
+    "typecheck": "pnpm --filter mobile exec tsc --noEmit && pnpm --filter api typecheck",
+    "test": "pnpm --filter api test"
   }
 }

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { nextLessonId, useApp } from '@/store/AppState';
+import { nextLesson, useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BLUE } from '@/theme/tokens';
 
@@ -22,9 +22,9 @@ const TABS = [
 /** Barre flottante : trois onglets, et le « + » en verre accolé à droite. */
 export function TabBar({ active }: { active: TabName }) {
   const { t } = useTheme();
-  const { data } = useApp();
+  const { data, lessons } = useApp();
   const insets = useSafeAreaInsets();
-  const startLesson = () => router.push({ pathname: '/lecon/[id]', params: { id: nextLessonId(data) } });
+  const startLesson = () => router.push({ pathname: '/lecon/[id]', params: { id: nextLesson(data, lessons).id } });
 
   return (
     <View

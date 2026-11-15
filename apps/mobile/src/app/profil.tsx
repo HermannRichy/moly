@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/expo';
 import { IconBell, IconCheck, IconCrown, IconFlameFilled, IconLock, IconLogout, IconMoon, IconStarFilled, type Icon } from '@tabler/icons-react-native';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -25,7 +26,8 @@ const MODES: { mode: ThemeMode; label: string }[] = [
 
 export default function Profil() {
   const { t, mode, setMode } = useTheme();
-  const { data, signOut } = useApp();
+  const { data } = useApp();
+  const { signOut } = useAuth();
   const insets = useSafeAreaInsets();
   const level = levelOf(data.xp);
   const streak = currentStreak(data);
@@ -136,8 +138,9 @@ export default function Profil() {
             <Pressable
               accessibilityRole="button"
               onPress={() => {
-                signOut();
-                router.replace('/connexion');
+                signOut()
+                  .catch(() => {})
+                  .finally(() => router.replace('/connexion'));
               }}
               style={{ height: 54, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <IconLogout size={22} color={t.ink} />

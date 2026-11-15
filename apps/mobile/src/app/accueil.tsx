@@ -6,22 +6,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/components/TabBar';
 import { Body, Card, CircleButton, Coq, Display, Grain, Label, Medal } from '@/components/ui';
-import { expressionOfDay } from '@/data/expressions';
-import { getLesson } from '@/data/lessons';
 import { dayKey, dayOfYear } from '@/lib/dates';
-import { currentStreak, nextLessonId, useApp } from '@/store/AppState';
+import { currentStreak, nextLesson, useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BLUE, fonts } from '@/theme/tokens';
 
 export default function Accueil() {
   const { t } = useTheme();
-  const { data, toggleExpression } = useApp();
+  const { data, lessons, expressions, toggleExpression } = useApp();
   const insets = useSafeAreaInsets();
 
   const streak = currentStreak(data);
-  const lesson = getLesson(nextLessonId(data))!;
+  const lesson = nextLesson(data, lessons);
   const doneToday = data.lastLessonDay === dayKey();
-  const expression = expressionOfDay(dayOfYear());
+  const expression = expressions[dayOfYear() % expressions.length];
   const saved = data.savedExpressions.includes(expression.id);
   const openLesson = () => router.push({ pathname: '/lecon/[id]', params: { id: lesson.id } });
 
