@@ -1,0 +1,13 @@
+name: Publier une mise à jour
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  publier:
+    name: Publier sur Expo
+    type: update
+    environment: preview
+    params:
+      branch: main
