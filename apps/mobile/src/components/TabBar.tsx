@@ -1,4 +1,4 @@
-import { IconHome, IconPlus, IconRepeat, IconUser } from '@tabler/icons-react-native';
+import { IconHome, IconMap2, IconPlus, IconRepeat, IconUser } from '@tabler/icons-react-native';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { router } from 'expo-router';
@@ -6,15 +6,17 @@ import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { nextLesson, useApp } from '@/store/AppState';
+import { buzz } from '@/lib/feedback';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BLUE } from '@/theme/tokens';
 
 import { Card } from './ui';
 
-export type TabName = 'accueil' | 'revisions' | 'profil';
+export type TabName = 'accueil' | 'carte' | 'revisions' | 'profil';
 
 const TABS = [
   { name: 'accueil', label: 'Accueil', icon: IconHome },
+  { name: 'carte', label: 'Carte', icon: IconMap2 },
   { name: 'revisions', label: 'Révisions', icon: IconRepeat },
   { name: 'profil', label: 'Profil', icon: IconUser },
 ] as const;
@@ -24,13 +26,16 @@ export function TabBar({ active }: { active: TabName }) {
   const { t } = useTheme();
   const { data, lessons } = useApp();
   const insets = useSafeAreaInsets();
-  const startLesson = () => router.push({ pathname: '/lecon/[id]', params: { id: nextLesson(data, lessons).id } });
+  const startLesson = () => {
+    buzz('light');
+    router.push({ pathname: '/lecon/[id]', params: { id: nextLesson(data, lessons).id } });
+  };
 
   return (
     <View
       pointerEvents="box-none"
       style={{ position: 'absolute', left: 0, right: 0, bottom: Math.max(insets.bottom, 16) + 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-      <Card radius={32} style={{ width: 200, height: 64, padding: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
+      <Card radius={32} style={{ width: 240, height: 64, padding: 8, flexDirection: 'row', justifyContent: 'space-between' }}>
         {TABS.map(({ name, label, icon: IconCmp }) => {
           const on = name === active;
           return (
@@ -42,7 +47,7 @@ export function TabBar({ active }: { active: TabName }) {
               onPress={() => {
                 if (!on) router.replace(`/${name}`);
               }}
-              style={{ width: 56, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.invBg : 'transparent' }}>
+              style={{ width: 52, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.invBg : 'transparent' }}>
               <IconCmp size={24} color={on ? t.invFg : t.muted} strokeWidth={2} />
             </Pressable>
           );

@@ -1,9 +1,12 @@
 import { IconFlameFilled, IconStarFilled } from '@tabler/icons-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { BounceIn, Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Body, Button, Coq, Display, Heading, ProgressBar, Stage, Tile } from '@/components/ui';
+import { playSound } from '@/lib/feedback';
 import { levelOf } from '@/lib/levels';
 import { useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,7 +24,7 @@ const CONFETTI = [
 ];
 
 export default function Resultat() {
-  const params = useLocalSearchParams<{ correct: string; total: string; xp: string; streak: string; badge: string; lesson: string }>();
+  const params = useLocalSearchParams<{ correct: string; total: string; xp: string; streak: string; badge: string; level: string; lesson: string }>();
   const { t } = useTheme();
   const { data } = useApp();
   const insets = useSafeAreaInsets();
@@ -34,6 +37,26 @@ export default function Resultat() {
   const streak = Number(params.streak ?? 0);
   const level = levelOf(data.xp);
   const perfect = correct === total;
+  const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const leveledUp = Boolean(params.level);
+
+  // Les XP gagnés se comptent à l'écran, puis le son du niveau suit celui de fin de leçon.
+  const [shownXp, setShownXp] = useState(0);
+  useEffect(() => {
+    playSound('fin');
+    const levelTimer = leveledUp ? setTimeout(() => playSound('niveau'), 1100) : undefined;
+    const steps = 20;
+    let i = 0;
+    const counter = setInterval(() => {
+      i += 1;
+      setShownXp(Math.round((xp * i) / steps));
+      if (i >= steps) clearInterval(counter);
+    }, 35);
+    return () => {
+      clearInterval(counter);
+      if (levelTimer) clearTimeout(levelTimer);
+    };
+  }, [xp, leveledUp]);
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
@@ -41,30 +64,43 @@ export default function Resultat() {
         <View style={{ position: 'absolute', left: 0, right: 0, top: insets.top - 20, bottom: 0, alignItems: 'center' }}>
           <View style={{ width: 390, flex: 1 }}>
             {CONFETTI.map((c, i) => (
-              <View key={i} style={{ position: 'absolute', left: c.x, top: c.y, width: c.w, height: c.h, borderRadius: c.w === c.h ? 7 : 4, backgroundColor: c.color, transform: [{ rotate: c.rot }] }} />
+              <Confetto key={i} index={i} {...c} />
             ))}
             <View style={{ position: 'absolute', left: 22, top: 128, transform: [{ rotate: '-10deg' }], paddingHorizontal: 16, paddingTop: 6, paddingBottom: 4, borderRadius: 18, backgroundColor: '#0A0A0A' }}>
               <Display size={34} color="#FFFFFF">
-                +{xp} XP
+                +{shownXp} XP
               </Display>
             </View>
             <View style={{ position: 'absolute', right: 24, top: 104, transform: [{ rotate: '9deg' }], paddingHorizontal: 16, paddingTop: 6, paddingBottom: 4, borderRadius: 18, backgroundColor: '#FFFFFF' }}>
               <Display size={34} color="#0A0A0A">
-                {correct}/{total}
+                {percent} %
               </Display>
             </View>
           </View>
         </View>
-        <Coq size={Math.min(200, Math.round(stage * 0.66))} mood={perfect ? 'proud' : 'happy'} style={{ position: 'absolute', left: 0, right: 0, bottom: 12, alignItems: 'center' }} />
+        <Animated.View entering={BounceIn.delay(120).duration(700)} style={{ position: 'absolute', left: 0, right: 0, bottom: 12, alignItems: 'center' }}>
+          <Coq size={Math.min(200, Math.round(stage * 0.66))} mood={perfect ? 'proud' : 'happy'} />
+        </Animated.View>
       </Stage>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 2, paddingBottom: insets.bottom + 12, gap: 12 }}>
         <Heading lead="Leçon" main="terminée !" size={46} center />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Tile big={`${correct}/${total}`} small={correct > 1 ? 'bonnes réponses' : 'bonne réponse'} />
+        {leveledUp ? (
+          <Animated.View
+            entering={ZoomIn.delay(900).springify()}
+            accessibilityLiveRegion="polite"
+            style={{ paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, backgroundColor: BLUE, alignItems: 'center' }}>
+            <Text style={{ fontFamily: fonts.semibold, fontSize: 13, letterSpacing: 1, textTransform: 'uppercase', color: '#FFFFFF' }}>Niveau supérieur</Text>
+            <Display size={30} color="#FFFFFF">
+              {params.level}
+            </Display>
+          </Animated.View>
+        ) : null}
+        <Animated.View entering={FadeInDown.delay(250).duration(380)} style={{ flexDirection: 'row', gap: 10 }}>
+          <Tile big={`${percent} %`} small="bonnes réponses" />
           <Tile big={`+${xp}`} small="XP gagnés" />
           <Tile big={String(streak)} small={streak > 1 ? 'jours de série' : 'jour de série'} icon={<IconFlameFilled size={22} color={t.blueText} />} />
-        </View>
+        </Animated.View>
         {params.badge ? (
           <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderRadius: 24, backgroundColor: t.invBg, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }] }}>
@@ -96,5 +132,22 @@ export default function Resultat() {
         ) : null}
       </ScrollView>
     </View>
+  );
+}
+
+/** Confetti qui tombe du haut de la scène jusqu'à sa place, en tournant. */
+function Confetto({ index, x, y, w, h, color, rot }: { index: number; x: number; y: number; w: number; h: number; color: string; rot: string }) {
+  const fall = useSharedValue(-y - 60);
+  const spin = useSharedValue(-180);
+  useEffect(() => {
+    const delay = 80 + index * 70;
+    fall.value = withDelay(delay, withTiming(0, { duration: 900, easing: Easing.out(Easing.cubic) }));
+    spin.value = withDelay(delay, withTiming(0, { duration: 900, easing: Easing.out(Easing.cubic) }));
+  }, [index, fall, spin]);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: fall.value }, { rotate: `${spin.value}deg` }] }));
+  return (
+    <Animated.View style={[{ position: 'absolute', left: x, top: y }, style]}>
+      <View style={{ width: w, height: h, borderRadius: w === h ? 7 : 4, backgroundColor: color, transform: [{ rotate: rot }] }} />
+    </Animated.View>
   );
 }

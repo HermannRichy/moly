@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { buzz, playSound } from '@/lib/feedback';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BLUE, BLUE_DARK, fonts } from '@/theme/tokens';
 
@@ -149,6 +150,12 @@ export function Medal({ size, mood = 'happy', bg = BLUE }: { size: number; mood?
   );
 }
 
+/** Photo du compte, ou le coq quand il n'y en a pas. */
+export function Avatar({ size, uri, bg }: { size: number; uri?: string | null; bg?: string }) {
+  if (!uri) return <Medal size={size} bg={bg} />;
+  return <Image source={{ uri }} accessibilityIgnoresInvertColors style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg ?? BLUE }} />;
+}
+
 type ButtonKind = 'blue' | 'white' | 'second' | 'ghost';
 
 /** Bouton épais : une tranche sous la face, qui s'enfonce à l'appui. */
@@ -168,9 +175,14 @@ export function Button({
   disabled?: boolean;
 }) {
   const { t } = useTheme();
+  const press = () => {
+    buzz('light');
+    playSound('touche');
+    onPress?.();
+  };
   if (kind === 'ghost') {
     return (
-      <Pressable accessibilityRole="button" onPress={onPress} style={{ height: 44, alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable accessibilityRole="button" onPress={press} style={{ height: 44, alignItems: 'center', justifyContent: 'center' }}>
         <Body size={16} weight="semibold">
           {label}
         </Body>
@@ -186,7 +198,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={press}
       style={{ height: 66, opacity: disabled ? 0.45 : 1 }}>
       {({ pressed }) => (
         <View style={{ flex: 1, borderRadius: 20, backgroundColor: edge, paddingBottom: pressed ? 2 : 6, marginTop: pressed ? 4 : 0 }}>

@@ -52,8 +52,10 @@ function Shell() {
         <Stack.Screen name="connexion" options={{ animation: 'fade' }} />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="accueil" options={{ animation: 'none' }} />
+        <Stack.Screen name="carte" options={{ animation: 'none' }} />
         <Stack.Screen name="revisions" options={{ animation: 'none' }} />
         <Stack.Screen name="profil" options={{ animation: 'none' }} />
+        <Stack.Screen name="reglages" />
         <Stack.Screen name="lecon/[id]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
         <Stack.Screen name="resultat" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>

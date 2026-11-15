@@ -2,42 +2,58 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { feedbackPrefs } from '@/lib/feedback';
+
 import { dark, light, type Palette } from './tokens';
 
 export type ThemeMode = 'clair' | 'sombre' | 'auto';
 
-type ThemeContextValue = {
+type Prefs = { mode: ThemeMode; sounds: boolean; haptics: boolean };
+
+type ThemeContextValue = Prefs & {
   t: Palette;
-  mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
+  setSounds: (on: boolean) => void;
+  setHaptics: (on: boolean) => void;
 };
 
-const KEY = 'moly.theme';
+const KEY = 'moly.prefs.v1';
+const DEFAULTS: Prefs = { mode: 'auto', sounds: true, haptics: true };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** Préférences propres à l'appareil : apparence, sons et vibrations. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('auto');
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)
-      .then((value) => {
-        if (value === 'clair' || value === 'sombre' || value === 'auto') setModeState(value);
+      .then((raw) => {
+        if (raw) setPrefs({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Prefs>) });
       })
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    feedbackPrefs.sounds = prefs.sounds;
+    feedbackPrefs.haptics = prefs.haptics;
+  }, [prefs.sounds, prefs.haptics]);
+
   const value = useMemo<ThemeContextValue>(() => {
-    const isDark = mode === 'sombre' || (mode === 'auto' && system === 'dark');
-    return {
-      t: isDark ? dark : light,
-      mode,
-      setMode: (next) => {
-        setModeState(next);
-        AsyncStorage.setItem(KEY, next).catch(() => {});
-      },
+    const isDark = prefs.mode === 'sombre' || (prefs.mode === 'auto' && system === 'dark');
+    const change = (patch: Partial<Prefs>) => {
+      const next = { ...prefs, ...patch };
+      setPrefs(next);
+      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
     };
-  }, [mode, system]);
+    return {
+      ...prefs,
+      t: isDark ? dark : light,
+      setMode: (mode) => change({ mode }),
+      setSounds: (sounds) => change({ sounds }),
+      setHaptics: (haptics) => change({ haptics }),
+    };
+  }, [prefs, system]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

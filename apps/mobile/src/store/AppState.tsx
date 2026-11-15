@@ -6,7 +6,7 @@ import { type Expression, expressions as bundledExpressions } from '@/data/expre
 import { type Lesson, lessons as bundledLessons } from '@/data/lessons';
 import { api, apiEnabled, ApiRejected } from '@/lib/api';
 import { dayKey, previousDayKey } from '@/lib/dates';
-import { XP_PER_ANSWER } from '@/lib/levels';
+import { levelOf, XP_PER_ANSWER } from '@/lib/levels';
 
 export type Pace = 'express' | 'complet';
 
@@ -30,6 +30,8 @@ export type LessonOutcome = {
   xpGained: number;
   streak: number;
   newBadges: string[];
+  /** Nom du niveau atteint si la leçon a fait changer de niveau, sinon chaîne vide. */
+  newLevel: string;
 };
 
 /** État renvoyé par l'API. */
@@ -96,6 +98,8 @@ type AppContextValue = {
   update: (patch: Partial<Pick<AppData, 'onboarded' | 'reminderMinutes' | 'pace'>>) => void;
   completeLesson: (lessonId: string, correct: number, total: number) => LessonOutcome;
   toggleExpression: (id: string) => void;
+  /** Supprime le compte et ses données. Renvoie faux si la suppression n'a pas pu se faire. */
+  deleteAccount: () => Promise<boolean>;
 };
 
 const STATE_KEY = 'moly.state.v2';
@@ -217,7 +221,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   // Synchronisation du compte à la connexion ; remise à zéro à la déconnexion.
-  const firstName = user?.firstName ?? '';
+  const firstName = user?.fullName || user?.firstName || '';
   useEffect(() => {
     if (!ready || !isLoaded) return;
     if (!isSignedIn) {
@@ -307,7 +311,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           .map((id) => BADGES.find((badge) => badge.id === id)!.name);
         persist(next);
         enqueue({ kind: 'complete', lessonId, correct, total, day: today });
-        return { correct, total, xpGained, streak, newBadges };
+        const levelBefore = levelOf(current.xp);
+        const levelAfter = levelOf(next.xp);
+        const newLevel = levelAfter.level > levelBefore.level ? `Niveau ${levelAfter.level} · ${levelAfter.name}` : '';
+        return { correct, total, xpGained, streak, newBadges, newLevel };
       },
       toggleExpression: (id) => {
         const current = dataRef.current;
@@ -317,6 +324,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           savedExpressions: saved ? [...current.savedExpressions, id] : current.savedExpressions.filter((item) => item !== id),
         });
         enqueue({ kind: 'save', expressionId: id, saved });
+      },
+      deleteAccount: async () => {
+        if (!apiEnabled) return false;
+        try {
+          const token = await getTokenRef.current();
+          if (!token) return false;
+          await api<{ ok: boolean }>('/v1/me', { method: 'DELETE', token });
+          queueRef.current = [];
+          save(QUEUE_KEY, []);
+          return true;
+        } catch {
+          return false;
+        }
       },
     };
   }, [data, ready, synced, content, persist, enqueue]);

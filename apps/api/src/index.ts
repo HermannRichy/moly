@@ -1,4 +1,4 @@
-import { verifyToken } from '@clerk/backend';
+import { createClerkClient, verifyToken } from '@clerk/backend';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { Hono } from 'hono';
@@ -15,6 +15,7 @@ function build(): Inner | string[] {
   const secretKey = process.env.CLERK_SECRET_KEY;
   const missing = [!databaseUrl && 'DATABASE_URL', !secretKey && 'CLERK_SECRET_KEY'].filter((name): name is string => Boolean(name));
   if (!databaseUrl || !secretKey) return missing;
+  const clerk = createClerkClient({ secretKey });
   return createApp({
     db: drizzle(neon(databaseUrl), { schema }),
     authenticate: async (token) => {
@@ -24,6 +25,9 @@ function build(): Inner | string[] {
       } catch {
         return null;
       }
+    },
+    deleteIdentity: async (userId) => {
+      await clerk.users.deleteUser(userId);
     },
   });
 }

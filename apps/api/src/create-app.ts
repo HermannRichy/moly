@@ -11,6 +11,8 @@ export type Deps = {
   db: Db;
   /** Vérifie le jeton de session et renvoie l'identifiant de l'utilisateur, ou null. */
   authenticate: (token: string) => Promise<string | null>;
+  /** Supprime le compte chez le fournisseur d'identité. */
+  deleteIdentity: (userId: string) => Promise<void>;
   now?: () => Date;
 };
 
@@ -31,7 +33,7 @@ const completion = z.object({
   day: z.string(),
 });
 
-export function createApp({ db, authenticate, now = () => new Date() }: Deps) {
+export function createApp({ db, authenticate, deleteIdentity, now = () => new Date() }: Deps) {
   const app = new Hono<Env>();
   let ready: Promise<void> | null = null;
 
@@ -102,6 +104,16 @@ export function createApp({ db, authenticate, now = () => new Date() }: Deps) {
       await db.update(users).set(parsed.data).where(eq(users.id, userId));
     }
     return c.json(await loadState(userId));
+  });
+
+  app.delete('/v1/me', async (c) => {
+    const userId = c.get('userId');
+    // L'identité d'abord : si cet appel échoue, rien n'est supprimé et l'utilisateur peut réessayer.
+    await deleteIdentity(userId);
+    await db.delete(lessonResults).where(eq(lessonResults.userId, userId));
+    await db.delete(savedExpressions).where(eq(savedExpressions.userId, userId));
+    await db.delete(users).where(eq(users.id, userId));
+    return c.json({ ok: true });
   });
 
   app.post('/v1/lessons/:id/complete', async (c) => {

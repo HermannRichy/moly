@@ -1,12 +1,13 @@
 import { IconArrowDown, IconBulb, IconCheck, IconX } from '@tabler/icons-react-native';
-import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInDown, SlideInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Body, Button, Card, CircleButton, Display, Grain, Heading, Label, Medal, Pill, Wave } from '@/components/ui';
 import type { Exercise, Lesson } from '@/data/lessons';
+import { buzz, playSound } from '@/lib/feedback';
 import { isCorrect } from '@/lib/grading';
 import { useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -51,7 +52,8 @@ export default function LessonScreen() {
     setAnswer(value);
     setVerdict(ok);
     if (ok) setScore((s) => s + 1);
-    Haptics.notificationAsync(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error).catch(() => {});
+    buzz(ok ? 'success' : 'error');
+    playSound(ok ? 'bonne' : 'erreur');
   };
 
   const next = () => {
@@ -70,6 +72,7 @@ export default function LessonScreen() {
         xp: String(outcome.xpGained),
         streak: String(outcome.streak),
         badge: outcome.newBadges[0] ?? '',
+        level: outcome.newLevel,
         lesson: lesson.id,
       },
     });
@@ -93,11 +96,13 @@ export default function LessonScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 22, paddingBottom: verdict === null ? 16 : 300 }}>
-        {exercise ? (
-          <ExerciseView key={step} exercise={exercise} answer={answer} setAnswer={setAnswer} verdict={verdict} onPick={validate} />
-        ) : (
-          <Rule lesson={lesson} />
-        )}
+        <Animated.View key={step} entering={FadeInDown.duration(320)}>
+          {exercise ? (
+            <ExerciseView exercise={exercise} answer={answer} setAnswer={setAnswer} verdict={verdict} onPick={validate} />
+          ) : (
+            <Rule lesson={lesson} />
+          )}
+        </Animated.View>
       </ScrollView>
 
       {verdict === null ? (
@@ -385,11 +390,16 @@ function Feedback({ exercise, good, onNext, last }: { exercise: Exercise; good: 
   }
 
   return (
-    <View accessibilityLiveRegion="polite" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: bg, paddingHorizontal: 24, paddingTop: 6, paddingBottom: insets.bottom + 18, gap: 16 }}>
+    <Animated.View
+      entering={SlideInDown.duration(280)}
+      accessibilityLiveRegion="polite"
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: bg, paddingHorizontal: 24, paddingTop: 6, paddingBottom: insets.bottom + 18, gap: 16 }}>
       <Wave color={bg} height={30} style={{ top: -29 }} />
       {good ? <Grain opacity={0.4} /> : null}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
-        <Medal size={64} mood={good ? 'proud' : 'kind'} bg={good ? '#FFFFFF' : BLUE} />
+        <Animated.View entering={ZoomIn.delay(160).springify()}>
+          <Medal size={64} mood={good ? 'proud' : 'kind'} bg={good ? '#FFFFFF' : BLUE} />
+        </Animated.View>
         <View style={{ flex: 1, gap: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Display size={36} color={fg} accessibilityRole="header">
@@ -405,6 +415,6 @@ function Feedback({ exercise, good, onNext, last }: { exercise: Exercise; good: 
         </View>
       </View>
       <Button label={last ? 'Voir le résultat' : 'Continuer'} kind={good ? 'white' : 'blue'} onPress={onNext} />
-    </View>
+    </Animated.View>
   );
 }

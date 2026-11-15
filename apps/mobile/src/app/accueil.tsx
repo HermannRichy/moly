@@ -1,11 +1,13 @@
 import { IconArrowRight, IconBookmark, IconBookmarkFilled, IconChevronRight, IconFlameFilled, IconRepeat } from '@tabler/icons-react-native';
+import { useUser } from '@clerk/expo';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/components/TabBar';
-import { Body, Card, CircleButton, Coq, Display, Grain, Label, Medal } from '@/components/ui';
+import { Avatar, Body, Card, CircleButton, Coq, Display, Grain, Label } from '@/components/ui';
 import { dayKey, dayOfYear } from '@/lib/dates';
 import { currentStreak, nextLesson, useApp } from '@/store/AppState';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -15,6 +17,7 @@ export default function Accueil() {
   const { t } = useTheme();
   const { data, lessons, expressions, toggleExpression } = useApp();
   const insets = useSafeAreaInsets();
+  const { user } = useUser();
 
   const streak = currentStreak(data);
   const lesson = nextLesson(data, lessons);
@@ -35,12 +38,12 @@ export default function Accueil() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: insets.bottom + 120, gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Medal size={48} />
+          <Avatar size={48} uri={user?.imageUrl} />
           <View style={{ flex: 1 }}>
             <Body size={14} color={t.muted}>
               Bonjour{data.userName ? ',' : ''}
             </Body>
-            <Display size={30} accessibilityRole="header">
+            <Display size={30} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit>
               {data.userName || 'Bienvenue'}
             </Display>
           </View>
@@ -54,6 +57,7 @@ export default function Accueil() {
           </View>
         </View>
 
+        <Animated.View entering={FadeInDown.duration(380)}>
         <Card style={{ height: 108, paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           {days.map((n) => {
             if (n === streak) {
@@ -77,8 +81,9 @@ export default function Accueil() {
             );
           })}
         </Card>
+        </Animated.View>
 
-        <View style={{ height: 244 }}>
+        <Animated.View entering={FadeInDown.delay(90).duration(380)} style={{ height: 244 }}>
           <View style={{ position: 'absolute', left: 16, top: 8, width: 104, height: 132, borderRadius: 24, backgroundColor: t.invBg, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-10deg' }] }}>
             <Display size={70} color={t.invFg}>
               {glyphs[0]}
@@ -108,9 +113,9 @@ export default function Accueil() {
               </View>
             </BlurView>
           </Pressable>
-        </View>
+        </Animated.View>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 18, borderRadius: 28, backgroundColor: t.invBg, gap: 4 }}>
+        <Animated.View entering={FadeInDown.delay(180).duration(380)} style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 18, borderRadius: 28, backgroundColor: t.invBg, gap: 4 }}>
           <Label color={t.invMuted}>Expression du jour</Label>
           <Display size={40} color={t.invFg} style={{ marginTop: 2, marginRight: 44 }}>
             {expression.term}
@@ -129,7 +134,7 @@ export default function Accueil() {
             fg={t.invFg}
             style={{ position: 'absolute', right: 12, top: 12 }}
           />
-        </View>
+        </Animated.View>
 
         <Pressable accessibilityRole="button" onPress={() => router.replace('/revisions')}>
           <Card radius={22} style={{ height: 58, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>

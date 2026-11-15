@@ -1,16 +1,15 @@
-import { useAuth } from '@clerk/expo';
-import { IconBell, IconCheck, IconCrown, IconFlameFilled, IconLock, IconLogout, IconMoon, IconStarFilled, type Icon } from '@tabler/icons-react-native';
+import { useUser } from '@clerk/expo';
+import { IconCheck, IconCrown, IconFlameFilled, IconLock, IconSettings, IconStarFilled, type Icon } from '@tabler/icons-react-native';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBar } from '@/components/TabBar';
-import { Body, Card, Display, Medal, ProgressBar, Stage, Tile } from '@/components/ui';
-import { formatTime } from '@/lib/dates';
+import { Avatar, Body, Card, CircleButton, Display, ProgressBar, Stage, Tile } from '@/components/ui';
 import { levelOf } from '@/lib/levels';
 import { BADGES, type BadgeId, currentStreak, earnedBadges, useApp } from '@/store/AppState';
-import { type ThemeMode, useTheme } from '@/theme/ThemeProvider';
-import { BLUE, fonts } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { BLUE } from '@/theme/tokens';
 
 const BADGE_ICONS: Record<BadgeId, Icon> = {
   'premiere-lecon': IconStarFilled,
@@ -18,16 +17,11 @@ const BADGE_ICONS: Record<BadgeId, Icon> = {
   'sept-jours': IconFlameFilled,
   'trente-jours': IconFlameFilled,
 };
-const MODES: { mode: ThemeMode; label: string }[] = [
-  { mode: 'clair', label: 'Clair' },
-  { mode: 'sombre', label: 'Sombre' },
-  { mode: 'auto', label: 'Auto' },
-];
 
 export default function Profil() {
-  const { t, mode, setMode } = useTheme();
+  const { t } = useTheme();
   const { data } = useApp();
-  const { signOut } = useAuth();
+  const { user } = useUser();
   const insets = useSafeAreaInsets();
   const level = levelOf(data.xp);
   const streak = currentStreak(data);
@@ -40,12 +34,20 @@ export default function Profil() {
           <Display size={110} color="#FFFFFF" style={{ position: 'absolute', right: 18, top: insets.top, opacity: 0.22, letterSpacing: 5 }}>
             MOLY
           </Display>
+          <CircleButton
+            icon={IconSettings}
+            label="Réglages"
+            onPress={() => router.push('/reglages')}
+            bg="#FFFFFF"
+            fg="#0A0A0A"
+            style={{ position: 'absolute', right: 24, top: insets.top + 12 }}
+          />
         </Stage>
         <View style={{ position: 'absolute', left: 24, top: 52 + insets.top, borderRadius: 50, borderWidth: 5, borderColor: t.bg }}>
-          <Medal size={86} bg={t.invBg} />
+          <Avatar size={86} uri={user?.imageUrl} bg={t.invBg} />
         </View>
         <View style={{ marginLeft: 134, marginRight: 24, marginTop: 6, minHeight: 56 }}>
-          <Display size={32} accessibilityRole="header">
+          <Display size={32} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit>
             {data.userName || 'Votre profil'}
           </Display>
           <Body size={14} color={t.muted}>
@@ -100,54 +102,6 @@ export default function Profil() {
                 );
               })}
             </View>
-          </Card>
-
-          <Card radius={24} style={{ paddingHorizontal: 14, paddingVertical: 2 }}>
-            <View style={{ height: 58, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <IconMoon size={22} color={t.ink} />
-              <Body size={16} weight="medium" style={{ flex: 1 }}>
-                Apparence
-              </Body>
-              <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', borderRadius: 22, backgroundColor: t.soft }}>
-                {MODES.map((item) => {
-                  const on = item.mode === mode;
-                  return (
-                    <Pressable
-                      key={item.mode}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: on }}
-                      onPress={() => setMode(item.mode)}
-                      style={{ height: 44, paddingHorizontal: 12, borderRadius: 22, justifyContent: 'center', backgroundColor: on ? t.invBg : 'transparent' }}>
-                      <Text style={{ fontFamily: fonts.semibold, fontSize: 14, color: on ? t.invFg : t.ink }}>{item.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-            <View style={{ height: 1, backgroundColor: t.line }} />
-            <View style={{ height: 54, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <IconBell size={22} color={t.ink} />
-              <Body size={16} weight="medium" style={{ flex: 1 }}>
-                Rappel quotidien
-              </Body>
-              <Body size={15} color={t.muted}>
-                {formatTime(data.reminderMinutes)}
-              </Body>
-            </View>
-            <View style={{ height: 1, backgroundColor: t.line }} />
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                signOut()
-                  .catch(() => {})
-                  .finally(() => router.replace('/connexion'));
-              }}
-              style={{ height: 54, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <IconLogout size={22} color={t.ink} />
-              <Body size={16} weight="medium">
-                Se déconnecter
-              </Body>
-            </Pressable>
           </Card>
 
           <View style={{ overflow: 'hidden', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 24, backgroundColor: t.invBg, flexDirection: 'row', alignItems: 'center', gap: 12 }}>

@@ -12,14 +12,20 @@ const NOW = new Date('2026-11-15T12:00:00Z');
 function setup() {
   const db = drizzle(new PGlite(), { schema });
   let now = NOW;
-  const app = createApp({ db, authenticate: async (token) => (token.startsWith('user-') ? token : null), now: () => now });
+  const deleted: string[] = [];
+  const app = createApp({ db, authenticate: async (token) => (token.startsWith('user-') ? token : null),
+    deleteIdentity: async (userId) => {
+      deleted.push(userId);
+    },
+    now: () => now,
+  });
   const call = (path: string, init: { method?: string; token?: string; body?: unknown } = {}) =>
     app.request(path, {
       method: init.method ?? 'GET',
       headers: { 'content-type': 'application/json', ...(init.token ? { authorization: `Bearer ${init.token}` } : {}) },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
-  return { call, setNow: (value: Date) => (now = value) };
+  return { call, deleted, setNow: (value: Date) => (now = value) };
 }
 
 test('le contenu est complet et réservé aux comptes connectés', async () => {
@@ -91,4 +97,20 @@ test('une expression peut être enregistrée puis retirée', async () => {
   assert.deepEqual((await (await put('nonobstant', true)).json()).savedExpressions, ['nonobstant']);
   assert.deepEqual((await (await put('nonobstant', false)).json()).savedExpressions, []);
   assert.equal((await put('inconnue', true)).status, 404);
+});
+
+test('supprimer le compte efface ses données et son identité', async () => {
+  const { call, deleted } = setup();
+  await call('/v1/lessons/participe-passe-avoir/complete', { method: 'POST', token: 'user-a', body: { correct: 4, total: 4, day: '2026-11-15' } });
+  await call('/v1/expressions/nonobstant/saved', { method: 'PUT', token: 'user-a', body: { saved: true } });
+  await call('/v1/lessons/leur-leurs/complete', { method: 'POST', token: 'user-b', body: { correct: 4, total: 4, day: '2026-11-15' } });
+
+  const res = await call('/v1/me', { method: 'DELETE', token: 'user-a' });
+  assert.equal(res.status, 200);
+  assert.deepEqual(deleted, ['user-a']);
+
+  const again = await (await call('/v1/me', { token: 'user-a' })).json();
+  assert.deepEqual({ xp: again.xp, completed: again.completed, saved: again.savedExpressions }, { xp: 0, completed: [], saved: [] });
+  const other = await (await call('/v1/me', { token: 'user-b' })).json();
+  assert.equal(other.xp, 40);
 });
