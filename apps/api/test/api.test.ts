@@ -22,9 +22,10 @@ function setup() {
   return { call, setNow: (value: Date) => (now = value) };
 }
 
-test('le contenu est public et complet', async () => {
+test('le contenu est complet et réservé aux comptes connectés', async () => {
   const { call } = setup();
-  const res = await call('/v1/content');
+  assert.equal((await call('/v1/content')).status, 401);
+  const res = await call('/v1/content', { token: 'user-a' });
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.equal(body.lessons.length, 30);

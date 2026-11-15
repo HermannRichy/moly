@@ -157,19 +157,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Contenu à jour depuis l'API.
-  useEffect(() => {
-    if (!apiEnabled) return;
-    api<{ lessons: Lesson[]; expressions: Expression[] }>('/v1/content')
-      .then((fresh) => {
-        if (!fresh.lessons?.length || !fresh.expressions?.length) return;
-        const next = { lessons: fresh.lessons, expressions: fresh.expressions };
-        setContent(next);
-        save(CONTENT_KEY, next);
-      })
-      .catch(() => {});
-  }, []);
-
   const applyServer = useCallback(
     (state: ServerState) => {
       const { name, ...rest } = state;
@@ -236,7 +223,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (!isSignedIn) {
       queueRef.current = [];
       save(QUEUE_KEY, []);
-      if (apiEnabled) persist(INITIAL);
+      if (apiEnabled) {
+        persist(INITIAL);
+        setContent({ lessons: bundledLessons, expressions: bundledExpressions });
+        AsyncStorage.removeItem(CONTENT_KEY).catch(() => {});
+      }
       setSynced(!apiEnabled);
       return;
     }
@@ -261,6 +252,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         }
         applyServer({ ...server, ...patch, name: patch.name ?? server.name });
         if (Object.keys(patch).length > 0) enqueue({ kind: 'profile', patch });
+        // Les leçons sont réservées aux comptes connectés : on les charge avec la session.
+        const fresh = await api<{ lessons: Lesson[]; expressions: Expression[] }>('/v1/content', { token });
+        if (!cancelled && fresh.lessons?.length && fresh.expressions?.length) {
+          const next = { lessons: fresh.lessons, expressions: fresh.expressions };
+          setContent(next);
+          save(CONTENT_KEY, next);
+        }
       } catch {
         // Hors ligne : on garde l'état local, la synchronisation reprendra au prochain lancement.
       } finally {

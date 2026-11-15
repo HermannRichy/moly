@@ -52,6 +52,15 @@ export function createApp({ db, authenticate, now = () => new Date() }: Deps) {
 
   app.get('/', (c) => c.json({ name: 'MOLY API', ok: true }));
 
+  app.use('/v1/*', async (c, next) => {
+    const header = c.req.header('authorization') ?? '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const userId = token ? await authenticate(token) : null;
+    if (!userId) return c.json({ error: 'Non authentifié' }, 401);
+    c.set('userId', userId);
+    await next();
+  });
+
   app.get('/v1/content', async (c) => {
     const lessonRows = await db.select().from(lessons).where(eq(lessons.published, true)).orderBy(asc(lessons.position));
     const expressionRows = await db.select().from(expressions).orderBy(asc(expressions.position));
@@ -60,16 +69,6 @@ export function createApp({ db, authenticate, now = () => new Date() }: Deps) {
       lessons: lessonRows.map((row) => row.data),
       expressions: expressionRows.map((row) => row.data),
     });
-  });
-
-  app.use('/v1/*', async (c, next) => {
-    if (c.req.path === '/v1/content') return next();
-    const header = c.req.header('authorization') ?? '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-    const userId = token ? await authenticate(token) : null;
-    if (!userId) return c.json({ error: 'Non authentifié' }, 401);
-    c.set('userId', userId);
-    await next();
   });
 
   async function loadState(userId: string) {
